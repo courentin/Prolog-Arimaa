@@ -21,5 +21,16 @@ board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,si
 
 % Retourne la piece à la position [X, Y]
 what_on([_, _], [], _) :- fail.
-what_on([X, Y], [[X, Y, Piece, Couleur]|_], [Piece, Couleur]) :- print(Piece), print(Couleur).
+what_on([X, Y], [[X, Y, Piece, Couleur]|_], [Piece, Couleur]).
 what_on([X, Y], [T|Q], Res) :- what_on([X, Y], Q, Res).
+
+%get_up([_, _], [], _) :- fail.
+get_up([X, Y], [[X, Y1, Piece, Couleur]|Q], [X, Y1, Piece, Couleur]) :- Y1 is Y +1.
+get_up([X, Y], [T, Q], Res) :- get_up([X, Y], Q, Res).
+
+get_right().
+get_down().
+get_left().
+
+get_adjacentes(_, _, [_, _, _, _]).
+get_adjacentes([X, Y], [[|Q], Res).
