@@ -47,3 +47,5 @@ associate_animal_num(cat, 3).
 associate_animal_num(rabbit, 2).
 
 is_stronger(A1, A2) :- associate_animal_num(A1, N1), associate_animal_num(A2, N2), N1 > N2.
+
+is_empty(Piece, Board) :- what_on(Piece, Board, []).
