@@ -38,3 +38,12 @@ get_adjacentes([X, Y], [U, R, D, L], Board) :-
 is_ally([X, Y] , [Side|_], Board) :- what_on([X,Y], Board, [_,Side]).
 
 is_enemy([X, Y] , [Side|_], Board) :- what_on([X,Y], Board, [_,Color]), Side \= Color.
+
+associate_animal_num(elephant, 7).
+associate_animal_num(camel, 6).
+associate_animal_num(horse, 5).
+associate_animal_num(dog, 4).
+associate_animal_num(cat, 3).
+associate_animal_num(rabbit, 2).
+
+is_stronger(A1, A2) :- associate_animal_num(A1, N1), associate_animal_num(A2, N2), N1 > N2.
