@@ -24,7 +24,7 @@ board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,si
 % what_on([X, Y], Board, Résultat)
 
 what_on([_, _], [], []).
-what_on([X, Y], [[X, Y, Piece, Couleur]|_], [Piece, Couleur]) :- !.
+what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
 what_on([X, Y], [T|Q], Res) :- what_on([X, Y], Q, Res).
 
 % troisième arg : pièces adjacentes dans l'ordre H - D - B - G
@@ -50,17 +50,8 @@ associate_animal_num([], 0).
 
 is_stronger(A1, A2) :- associate_animal_num(A1, N1), associate_animal_num(A2, N2), N1 > N2.
 
-%is_not_empty(Pos, Board) :- what_on(Pos, Board, []), fail.
 is_not_empty(Pos, Board) :- what_on(Pos, Board, [_, _]).
-
 is_empty(Pos, Board) :- \+is_not_empty(Pos, Board).
-%is_empty([_, _], []).
-
-%is_empty([_, _], []).
-%is_empty([X, Y], [[X, Y, Piece, Couleur]|_]) :- fail.
-%is_empty([X, Y], [T|Q]) :- is_empty([X, Y], Q).
-
-%is_empty(Pos, Board) :- what_on(Pos, Board, []).
 
 coord_exist([X, Y]) :- X =< 7, X >= 0, Y =< 7, Y >= 0.
 
@@ -81,3 +72,7 @@ movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,
 movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
 movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,Y], [LX, LY]), is_empty([LX, LY], Board).
 movement([X, Y], Board, [[X,Y], [DX, DY]]) :- can_move([X, Y], Board),  down([X,Y], [DX, DY]), is_empty([DX, DY], Board).
+
+get_allies([], _, []).
+get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
+get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
