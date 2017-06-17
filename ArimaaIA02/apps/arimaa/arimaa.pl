@@ -55,10 +55,15 @@ is_empty(Pos, Board) :- \+is_not_empty(Pos, Board).
 
 coord_exist([X, Y]) :- X =< 7, X >= 0, Y =< 7, Y >= 0.
 
-top([X,Y], [X, TY])   :- TY is Y - 1, coord_exist([X, TY]).
-down([X,Y], [X, DY])  :- DY is Y + 1, coord_exist([X, DY]).
-left([X,Y], [LX, Y])  :- LX is X - 1, coord_exist([LX, Y]).
-right([X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
+left([X,Y], [X, TY])   :- TY is Y - 1, coord_exist([X, TY]).
+right([X,Y], [X, DY])  :- DY is Y + 1, coord_exist([X, DY]).
+top([X,Y], [LX, Y])  :- LX is X - 1, coord_exist([LX, Y]).
+down([X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
+
+is_trap([2,2]).
+is_trap([5,2]).
+is_trap([2,5]).
+is_trap([5,5]).
 
 % Attention, il faudra peut être rajouter un is_ally dans ce predicat, si on n'est pas sur de tester uniquement sur des alliés
 can_move(Pos, Board) :-
