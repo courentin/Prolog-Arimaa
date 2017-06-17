@@ -60,14 +60,20 @@ down([X,Y], [X, DY])  :- DY is Y + 1, coord_exist([X, DY]).
 left([X,Y], [LX, Y])  :- LX is X - 1, coord_exist([LX, Y]).
 right([X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
 
+% Attention, il faudra peut être rajouter un is_ally dans ce predicat, si on n'est pas sur de tester uniquement sur des alliés
 can_move(Pos, Board) :-
   get_adjacentes(Pos, [U, R, D, L], Board),
-  what_on(Pos, Board, [Piece, _]),
-  \+is_stronger(U, Piece),
-  \+is_stronger(R, Piece),
-  \+is_stronger(D, Piece),
-  \+is_stronger(L, Piece).
-
+  what_on(Pos, Board, P),
+  \+blocking(U, P), 
+  \+blocking(R, P),
+  \+blocking(D, P),
+  \+blocking(L, P).
+  
+% Est ce que la pièce 1 bloque la 2 ?
+  % param 1 : pièce à tester
+  % param 2 : notre pièce
+blocking([Piece1, Color1], [Piece2, Color2]) :- is_stronger(Piece1, Piece2), not(Color1 = Color2).
+  
 movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), is_empty([TX, TY], Board).
 movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
 movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,Y], [LX, LY]), is_empty([LX, LY], Board).
