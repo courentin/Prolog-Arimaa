@@ -23,7 +23,7 @@ board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,si
 % tableau vide si rien
 % what_on([X, Y], Board, Résultat)
 
-what_on([_, _], [], []).
+what_on(_, [], []).
 what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
 what_on([X, Y], [T|Q], Res) :- what_on([X, Y], Q, Res).
 
@@ -48,7 +48,8 @@ associate_animal_num(cat, 3).
 associate_animal_num(rabbit, 2).
 associate_animal_num([], 0).
 
-is_stronger(A1, A2) :- associate_animal_num(A1, N1), associate_animal_num(A2, N2), N1 > N2.
+is_stronger(_, []).
+is_stronger([A1,_], [A2,_]) :- associate_animal_num(A1, N1), associate_animal_num(A2, N2), N1 > N2.
 
 is_not_empty(Pos, Board) :- what_on(Pos, Board, [_, _]).
 is_empty(Pos, Board) :- \+is_not_empty(Pos, Board).
@@ -67,11 +68,62 @@ is_trap([5,5]).
 
 can_move(Pos, Board) :-
   get_adjacentes(Pos, [U, R, D, L], Board),
-  what_on(Pos, Board, [Piece, _]),
+  what_on(Pos, Board, Piece),
   \+is_stronger(U, Piece),
   \+is_stronger(R, Piece),
   \+is_stronger(D, Piece),
   \+is_stronger(L, Piece).
+
+
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [[_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, [_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, [_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
+
+has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [[_,O]|_], Board),
+  Side \= O,
+  what_on(Pos, Board, Piece),
+  is_stronger([P, O], Piece), !.
+has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, [P,O]|_], Board),
+  Side \= O,
+  what_on(Pos, Board, Piece),
+  is_stronger([P, O], Piece), !.
+has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, [P,O]|_], Board),
+  Side \= O,
+  what_on(Pos, Board, Piece),
+  is_stronger([P, O], Piece), !.
+has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, _, [P,O]], Board),
+  Side \= O,
+  what_on(Pos, Board, Piece),
+  is_stronger([P, O], Piece), !.
+
+% can't move on an non-empty case
+can_move_here(_, OtherPos, Board) :-
+  is_not_empty(OtherPos, Board),
+  fail, !.
+
+% a Rabbit can't go back
+can_move_here(Pos, OtherPos, Board) :-
+  top(Pos, OtherPos),
+  what_on(Pos, Board, [rabbit|silver]),
+  fail, !.
+
+can_move_here(_, _, _).
+
+% can move if it has an ally around
+can_move(Pos, Board, Gamestate) :-
+  has_adjacent_ally(Pos, Gamestate, Board).
+
+can_move(Pos, Board, Gamestate) :-
+  \+has_adjacent_enemy(Pos, Gamestate, Board).
 
 movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), is_empty([TX, TY], Board).
 movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
