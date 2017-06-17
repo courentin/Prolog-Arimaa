@@ -60,6 +60,11 @@ down([X,Y], [X, DY])  :- DY is Y + 1, coord_exist([X, DY]).
 left([X,Y], [LX, Y])  :- LX is X - 1, coord_exist([LX, Y]).
 right([X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
 
+is_trap([2,2]).
+is_trap([5,2]).
+is_trap([2,5]).
+is_trap([5,5]).
+
 can_move(Pos, Board) :-
   get_adjacentes(Pos, [U, R, D, L], Board),
   what_on(Pos, Board, [Piece, _]),
