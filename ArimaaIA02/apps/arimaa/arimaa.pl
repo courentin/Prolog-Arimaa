@@ -17,7 +17,7 @@
 % default call
 get_moves([[[1,0],[4,0]],[[0,0],[1,0]],[[0,1],[0,0]],[[0,0],[0,1]]], Gamestate, Board).
 
-board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[1,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[6,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
+board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[1,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[2,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
 
 % Retourne la piece à la position [X, Y]
 % tableau vide si rien
@@ -66,14 +66,29 @@ is_trap([5,2]).
 is_trap([2,5]).
 is_trap([5,5]).
 
-can_move(Pos, Board) :-
+% Attention, il faudra peut être rajouter un is_ally dans ce predicat, si on n'est pas sur de tester uniquement sur des alliés
+% can move if it has an ally around
+can_move(Pos, Board, Gamestate) :-
+  has_adjacent_ally(Pos, Gamestate, Board).
+
+can_move(Pos, Board, Gamestate) :-
   get_adjacentes(Pos, [U, R, D, L], Board),
+  what_on(Pos, Board, P),
+  \+blocking(U, P),
+  \+blocking(R, P),
+  \+blocking(D, P),
+  \+blocking(L, P).
+
+% Est ce que la pièce 1 bloque la 2 ?
+  % param 1 : pièce à tester
+  % param 2 : notre pièce
+blocking([Piece1, Color1], [Piece2, Color2]) :- is_stronger([Piece1, Color1], [Piece2, Color2]), not(Color1 = Color2).
+
   what_on(Pos, Board, Piece),
   \+is_stronger(U, Piece),
   \+is_stronger(R, Piece),
   \+is_stronger(D, Piece),
   \+is_stronger(L, Piece).
-
 
 has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [[_,Side]|_], Board).
@@ -83,27 +98,6 @@ has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [_, _, [_,Side]|_], Board).
 has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
-
-has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [[_,O]|_], Board),
-  Side \= O,
-  what_on(Pos, Board, Piece),
-  is_stronger([P, O], Piece), !.
-has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, [P,O]|_], Board),
-  Side \= O,
-  what_on(Pos, Board, Piece),
-  is_stronger([P, O], Piece), !.
-has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, _, [P,O]|_], Board),
-  Side \= O,
-  what_on(Pos, Board, Piece),
-  is_stronger([P, O], Piece), !.
-has_stronger_adjacent_enemy(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, _, _, [P,O]], Board),
-  Side \= O,
-  what_on(Pos, Board, Piece),
-  is_stronger([P, O], Piece), !.
 
 % can't move on an non-empty case
 can_move_here(_, OtherPos, Board) :-
@@ -117,13 +111,6 @@ can_move_here(Pos, OtherPos, Board) :-
   fail, !.
 
 can_move_here(_, _, _).
-
-% can move if it has an ally around
-can_move(Pos, Board, Gamestate) :-
-  has_adjacent_ally(Pos, Gamestate, Board).
-
-can_move(Pos, Board, Gamestate) :-
-  \+has_adjacent_enemy(Pos, Gamestate, Board).
 
 movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), is_empty([TX, TY], Board).
 movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
