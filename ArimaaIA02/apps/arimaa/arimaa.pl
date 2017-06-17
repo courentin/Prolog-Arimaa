@@ -83,7 +83,6 @@ can_move(Pos, Board, Gamestate) :-
   % param 1 : pièce à tester
   % param 2 : notre pièce
 blocking([Piece1, Color1], [Piece2, Color2]) :- is_stronger([Piece1, Color1], [Piece2, Color2]), not(Color1 = Color2).
-
   what_on(Pos, Board, Piece),
   \+is_stronger(U, Piece),
   \+is_stronger(R, Piece),
@@ -99,18 +98,17 @@ has_adjacent_ally(Pos, [Side|_], Board) :-
 has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
 
-% can't move on an non-empty case
-can_move_here(_, OtherPos, Board) :-
-  is_not_empty(OtherPos, Board),
-  fail, !.
-
 % a Rabbit can't go back
 can_move_here(Pos, OtherPos, Board) :-
   top(Pos, OtherPos),
-  what_on(Pos, Board, [rabbit|silver]),
-  fail, !.
+  what_on(Pos, Board, [rabbit|silver]), !, fail.
 
-can_move_here(_, _, _).
+can_move_here(Pos, OtherPos, Board) :-
+  down(Pos, OtherPos),
+  what_on(Pos, Board, [rabbit|gold]), !, fail.
+
+can_move_here(_, OtherPos, Board) :-
+  is_empty(OtherPos, Board).
 
 movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), is_empty([TX, TY], Board).
 movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
