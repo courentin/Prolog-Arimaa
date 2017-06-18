@@ -23,9 +23,11 @@ board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,si
 % tableau vide si rien
 % what_on([X, Y], Board, Résultat)
 
-what_on(_, [], []).
-what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
-what_on([X, Y], [_|Q], Res) :- what_on([X, Y], Q, Res).
+what_on(Pos, Board, Res) :- coord_exist(Pos), !, f_what_on(Pos, Board, Res).
+what_on(_, _, []).
+f_what_on(_, [], []).
+f_what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
+f_what_on([X, Y], [_|Q], Res) :- f_what_on([X, Y], Q, Res).
 
 % troisième arg : pièces adjacentes dans l'ordre H - D - B - G
 %get_adjacentes(_, _, [_, _, _, _]).
@@ -56,11 +58,12 @@ is_empty(Pos, Board) :- \+is_not_empty(Pos, Board).
 
 coord_exist([X, Y]) :- X =< 7, X >= 0, Y =< 7, Y >= 0.
 
-left([X,Y], [X, TY])   :- TY is Y - 1, coord_exist([X, TY]).
-right([X,Y], [X, DY])  :- DY is Y + 1, coord_exist([X, DY]).
-top([X,Y], [LX, Y])  :- LX is X - 1, coord_exist([LX, Y]).
-down([X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
+left( [X,Y], [X, TY]) :- TY is Y - 1, coord_exist([X, TY]).
+right([X,Y], [X, DY]) :- DY is Y + 1, coord_exist([X, DY]).
+top(  [X,Y], [LX, Y]) :- LX is X - 1, coord_exist([LX, Y]).
+down( [X,Y], [RX, Y]) :- RX is X + 1, coord_exist([RX, Y]).
 
+% True if the param position is a trap
 is_trap([2,2]).
 is_trap([5,2]).
 is_trap([2,5]).
@@ -90,15 +93,6 @@ blocking([Piece1, Color1], [Piece2, Color2]) :- is_stronger([Piece1, Color1], [P
   \+is_stronger(D, Piece),
   \+is_stronger(L, Piece).
 
-has_adjacent_ally(Pos, [Side|_], Board, ) :-
-  get_adjacentes(Pos, [[_,Side]|_], Board).
-has_adjacent_ally(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, [_,Side]|_], Board).
-has_adjacent_ally(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, _, [_,Side]|_], Board).
-has_adjacent_ally(Pos, [Side|_], Board) :-
-  get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
-
 % Une piece peut bouger à cette position ?
 % Pas de vérification de force entre les pieces adjacentes
 can_move_here(Pos, OtherPos, Board) :-
@@ -113,12 +107,59 @@ rabbit_who_go_back(Pos, OtherPos, Board) :-
   down(Pos, OtherPos),
   what_on(Pos, Board, [rabbit,gold]).
 
-movement(Pos, Board, Gamestate, Mov) :- is_not_empty(Pos, Board), get_adjacentes(Pos, Adj, Board), movement(Pos, Board, Gamestate, Mov, Adj).
-movement([X, Y], Board, Gamestate, [[X,Y], [TX, TY]], Adj) :- can_move([X, Y], Board, Gamestate, Adj),   top([X,Y], [TX, TY]), can_move_here([X, Y], [TX, TY], Board).
-movement([X, Y], Board, Gamestate, [[X,Y], [RX, RY]], Adj) :- can_move([X, Y], Board, Gamestate, Adj), right([X,Y], [RX, RY]), can_move_here([X, Y], [RX, RY], Board).
-movement([X, Y], Board, Gamestate, [[X,Y], [LX, LY]], Adj) :- can_move([X, Y], Board, Gamestate, Adj),  left([X,Y], [LX, LY]), can_move_here([X, Y], [LX, LY], Board).
-movement([X, Y], Board, Gamestate, [[X,Y], [DX, DY]], Adj) :- can_move([X, Y], Board, Gamestate, Adj),  down([X,Y], [DX, DY]), can_move_here([X, Y], [DX, DY], Board).
+% Créer un nouveau mouvement possible à partir du board pour une position donnéd
+  % param1 : Position à bouger
+  % param2 : le Board
+  % param3 : le Gamestate
+  % param4 : le mouvement resultat
+movement(Pos, Board, Gamestate, Mov) :- is_not_empty(Pos, Board), get_adjacentes(Pos, Adj, Board), can_move(Pos, Board, Gamestate, Adj), !, movement(Pos, Board, Gamestate, Mov, Adj).
+%movement(Pos, _, _, [Pos, Pos], _).
+movement([X, Y], Board, Gamestate, [[X,Y], [TX, TY]], Adj) :-   top([X,Y], [TX, TY]), can_move_here([X, Y], [TX, TY], Board).
+movement([X, Y], Board, Gamestate, [[X,Y], [RX, RY]], Adj) :- right([X,Y], [RX, RY]), can_move_here([X, Y], [RX, RY], Board).
+movement([X, Y], Board, Gamestate, [[X,Y], [LX, LY]], Adj) :-  left([X,Y], [LX, LY]), can_move_here([X, Y], [LX, LY], Board).
+movement([X, Y], Board, Gamestate, [[X,Y], [DX, DY]], Adj) :-  down([X,Y], [DX, DY]), can_move_here([X, Y], [DX, DY], Board).
+
+% Créer un nouvel etat du jeu possible à partir de celui de base
+  % param1 : Board
+  % param2 : Gamestate
+  % param3 : le Board resultat
+  % param4 : les mouvements necessaire pour arriver au board resultat
+  get_state(Board, [Side|_], NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]) :-
+    get_piece_side(Side, Board, [X1, Y1, _, _]),
+    movement([X1, Y1], Board, [Side|_], Mvt1),
+    apply_movement(Board, Mvt1, Board1),
+
+    get_piece_side(Side, Board1, [X2, Y2, _, _]),
+    movement([X2, Y2], Board1, [Side|_], Mvt2),
+    apply_movement(Board1, Mvt2, Board2),
+
+    get_piece_side(Side, Board2, [X3, Y3, _, _]),
+    movement([X3, Y3], Board2, [Side|_], Mvt3),
+    apply_movement(Board2, Mvt3, Board3),
+
+    get_piece_side(Side, Board3, [X4, Y4, _, _]),
+    movement([X4, Y4], Board3, [Side|_], Mvt4),
+    apply_movement(Board3, Mvt4, NewBoard).
+
+  all_states(Board, Gamestate, [NewBoard|Q]) :-
+    get_state(Board, Gamestate, NewBoard, Mvt),
+    print(Mvt),nl(),
+    all_states(Board, Gamestate, Q).
+
+% Applique un mouvement à une Board
+  % param1 : board de départ
+  % param3 : mouvement
+  % param2 : board d'arrivé
+apply_movement([], _, []).
+apply_movement([[X, Y, Piece, Color]|Q], [[X, Y], [NX, NY]], [[NX, NY, Piece, Color]|NewQ]) :-
+  apply_movement(Q, [[X, Y], [NX, NY]], NewQ), !.
+% apply_movement(Board, Mouvement, Nouvelle Board)
+apply_movement([T|Q], Mvt, [T|NewQ]) :-
+  apply_movement(Q, Mvt, NewQ).
 
 get_allies([], _, []).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
+
+get_piece_side(Side, [[X, Y, Piece, Side]|_], [X, Y, Piece, Side]).
+get_piece_side(Side, [_|Q], Piece) :- get_piece_side(Side, Q, Piece).
