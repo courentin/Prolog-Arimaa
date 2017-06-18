@@ -27,6 +27,8 @@ what_on(_, [], []).
 what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
 what_on([X, Y], [_|Q], Res) :- what_on([X, Y], Q, Res).
 
+
+
 % troisième arg : pièces adjacentes dans l'ordre H - D - B - G
 %get_adjacentes(_, _, [_, _, _, _]).
 get_adjacentes([X, Y], [U, R, D, L], Board) :-
@@ -83,11 +85,6 @@ can_move(Pos, Board, _) :-
   % param 1 : pièce à tester
   % param 2 : notre pièce
 blocking([Piece1, Color1], [Piece2, Color2]) :- is_stronger([Piece1, Color1], [Piece2, Color2]), not(Color1 = Color2).
-  what_on(Pos, Board, Piece),
-  \+is_stronger(U, Piece),
-  \+is_stronger(R, Piece),
-  \+is_stronger(D, Piece),
-  \+is_stronger(L, Piece).
 
 has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [[_,Side]|_], Board).
@@ -117,17 +114,38 @@ movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,
 movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,Y], [LX, LY]), can_move_here([X, Y], [LX, LY], Board).
 movement([X, Y], Board, [[X,Y], [DX, DY]]) :- can_move([X, Y], Board),  down([X,Y], [DX, DY]), can_move_here([X, Y], [DX, DY], Board).
 
-get_allies([], _, []).
+get_allies(_, [], _, []).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y, P, S]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 
-% Renvoie une note pour le plateau
-note_board(B, N).
+
+
+	
+% ---------------------------
+%    Notation des plateaux
+% ---------------------------
 
 % Renvoie le meilleur plateau entre les deux proposés
-best_board(B1, B2, B2) :- note_board(B1, N1), note_board(B2, N2), N2 > N1, !.
-best_board(B1, _, B1).
+% Param 1 : Plateau 1
+% Param 2 : Score du plateau 1
+% Param 3 : Plateau 2
+% Param 4 : meilleure des deux plateaux
+% Param 5 : Score du meilleur plateau
+best_board(_, N1, B2, B2, N2) :- note_board(B2, N2), N2 > N1, !.
+best_board(B1, N1, _, B1, N1).
 
+% Renvoie une note pour le plateau
+note_board(Board, Gamestate, Res) :- get_allies(Board, Board, Gamestate, Allies), note_pieces_recursively(Board, Gamestate, Allies, Res).
+
+% Note les pièces une à une et fait la somme de leurs notes
+note_pieces_recursively(_, _, [], 0).
+note_pieces_recursively(Board, Gamestate, [[X, Y, P, S] | Q], Res) :- 
+	note_piece(Board, Gamestate, [X, Y, P, S], Res1), 
+	note_pieces_recursively(Board, Gamestate, Q, Res2),
+	Res is Res1 + Res2,
+	print(Res),nl.
+
+	
 %Note une pièce du plateau
 % param 1 : Board
 % param 2 : Gamestate
@@ -140,10 +158,42 @@ note_piece(_, _, [7, _, rabbit, _], 10000) :- !.
 note_piece(Board, _, [X, Y, P, S], Res) :- is_trap([X, Y]), \+has_adjacent_ally([X, Y], [S], Board), associate_animal_num(P, N), Res is N * -100, !.
 % PLus un lapin peut se rapprocher du fond au prochain coup, plus il vaut de points
 note_piece(Board, _, [X, Y, rabbit, _], Res) :- X1 is X + 1, can_move_here([X, Y], [X1, Y], Board), Res is X * 100, !.
-% Bloquer une pièce retire des points
+% Bloquer notre pièce retire des points
 note_piece(Board, Gamestate, [X, Y, _, _], -100) :- \+can_move([X, Y], Board, Gamestate), !.
 
+% Se placer à coté d'une pièce adverse plus faible fait gagner des points
+
+% Si une pièce n'a pas été notée avant, elle renvoie 0 (indispensable pour eviter les plantages)
+note_piece(_, _, _, 0).
+
+% --------------------------------------------------------------------------------------------------------
+%    Génération des mouvements par Anthony (non fonctionnel, probablement travail en double avec Corentin)
+% --------------------------------------------------------------------------------------------------------
+
+find_best_board() :- generate_movements(Board, Gamestate, Movements), find_best_board_recursively(Movements, Board, [], -10000).
+
+
+% Trouve le meilleur plateau en parcourant la liste des mouvements possibles
+% Param 1 : Liste des mouvements possibles
+% Param 2 : Plateau d'origine (Board)
+% Param 3 : Meilleur plateau
+% Param 4 : Score du meilleur plateau
+%find_best_board_recursively() :- 
 
 
 
+generate_movements(Board, Gamestate, Res) :- 
+	get_allies(Board, Board, Gamestate, Allies), 
+	generate_piece_by_piece_movements(Allies, Board, Gamestate).
+
+
+% génère les mouvements possible pièce par pièce
+% Param 1 : liste des pièces alliées
+% Param 2 : Board
+% Param 3 : Retour (liste de mouvements)
+generate_piece_by_piece_movements([], _, []).
+generate_piece_by_piece_movements([[X, Y, P, S] | Q], Board, Ret) :- 
+	movements([X, Y], Board, Res1), 
+	generate_piece_by_piece_movements(Q, Board, Res2), 
+	append(Res1, Res2, Ret).
 
