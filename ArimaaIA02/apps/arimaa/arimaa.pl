@@ -161,7 +161,7 @@ note_piece(Board, _, [X, Y, P, S], Res) :- is_trap([X, Y]), \+has_adjacent_ally(
 % PLus un lapin peut se rapprocher du fond au prochain coup, plus il vaut de points
 note_piece(Board, _, [X, Y, rabbit, _], Res) :- X1 is X + 1, can_move_here([X, Y], [X1, Y], Board), Res is X * 100, !.
 % Bloquer notre pièce retire des points
-note_piece(Board, Gamestate, [X, Y, _, _], -100) :- \+can_move([X, Y], Board, Gamestate), !.
+note_piece(Board, Gamestate, [X, Y, _, _], -100) :- get_adjacentes([X, Y], Adj, Board), \+can_move([X, Y], Board, Gamestate, Adj), !.
 
 % Se placer à coté d'une pièce adverse plus faible fait gagner des points
 
