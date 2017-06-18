@@ -116,5 +116,32 @@ movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,
 movement([X, Y], Board, [[X,Y], [DX, DY]]) :- can_move([X, Y], Board),  down([X,Y], [DX, DY]), is_empty([DX, DY], Board).
 
 get_allies([], _, []).
-get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
+get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y, P, S]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
+
+% Renvoie une note pour le plateau
+note_board(B, N).
+
+% Renvoie le meilleur plateau entre les deux proposés
+best_board(B1, B2, B2) :- note_board(B1, N1), note_board(B2, N2), N2 > N1, !.
+best_board(B1, _, B1).
+
+%Note une pièce du plateau
+% param 1 : Board
+% param 2 : Gamestate
+% param 3 : pièce (posX, posY, type, couleur)
+% param 4 : valeur de retour
+% Format : note_piece(Board, [X, Y, P, S], Res).
+% Un lapin dans le camp adverse = note énorme, le coup doit être joué
+note_piece(_, _, [7, _, rabbit, _], 10000) :- !.
+% Une pièce va sur un piège = on retire des points en fonction de l'importance de la pièce (lapin = 200, elephant = 700)
+note_piece(Board, _, [X, Y, P, S], Res) :- is_trap([X, Y]), \+has_adjacent_ally([X, Y], [S], Board), associate_animal_num(P, N), Res is N * -100, !.
+% PLus un lapin peut se rapprocher du fond au prochain coup, plus il vaut de points
+note_piece(Board, _, [X, Y, rabbit, _], Res) :- X1 is X + 1, can_move_here([X, Y], [X1, Y], Board), Res is X * 100, !.
+% Bloquer une pièce retire des points
+note_piece(Board, Gamestate, [X, Y, _, _], -100) :- \+can_move([X, Y], Board, Gamestate), !.
+
+
+
+
+
