@@ -25,7 +25,7 @@ board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,si
 
 what_on(_, [], []).
 what_on([X, Y], [[X, Y, Piece, Color]|_], [Piece, Color]) :- !.
-what_on([X, Y], [T|Q], Res) :- what_on([X, Y], Q, Res).
+what_on([X, Y], [_|Q], Res) :- what_on([X, Y], Q, Res).
 
 % troisième arg : pièces adjacentes dans l'ordre H - D - B - G
 %get_adjacentes(_, _, [_, _, _, _]).
@@ -71,7 +71,7 @@ is_trap([5,5]).
 can_move(Pos, Board, Gamestate) :-
   has_adjacent_ally(Pos, Gamestate, Board).
 
-can_move(Pos, Board, Gamestate) :-
+can_move(Pos, Board, _) :-
   get_adjacentes(Pos, [U, R, D, L], Board),
   what_on(Pos, Board, P),
   \+blocking(U, P),
@@ -98,22 +98,24 @@ has_adjacent_ally(Pos, [Side|_], Board) :-
 has_adjacent_ally(Pos, [Side|_], Board) :-
   get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
 
-% a Rabbit can't go back
+% Une piece peut bouger à cette position ?
+% Pas de vérification de force entre les pieces adjacentes
 can_move_here(Pos, OtherPos, Board) :-
+is_empty(OtherPos, Board),
+  \+rabbit_who_go_back(Pos, OtherPos, Board).
+
+% Yes when a rabbit try to going back
+rabbit_who_go_back(Pos, OtherPos, Board) :-
   top(Pos, OtherPos),
-  what_on(Pos, Board, [rabbit|silver]), !, fail.
-
-can_move_here(Pos, OtherPos, Board) :-
+  what_on(Pos, Board, [rabbit,silver]).
+rabbit_who_go_back(Pos, OtherPos, Board) :-
   down(Pos, OtherPos),
-  what_on(Pos, Board, [rabbit|gold]), !, fail.
+  what_on(Pos, Board, [rabbit,gold]).
 
-can_move_here(_, OtherPos, Board) :-
-  is_empty(OtherPos, Board).
-
-movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), is_empty([TX, TY], Board).
-movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), is_empty([RX, RY], Board).
-movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,Y], [LX, LY]), is_empty([LX, LY], Board).
-movement([X, Y], Board, [[X,Y], [DX, DY]]) :- can_move([X, Y], Board),  down([X,Y], [DX, DY]), is_empty([DX, DY], Board).
+movement([X, Y], Board, [[X,Y], [TX, TY]]) :- can_move([X, Y], Board),   top([X,Y], [TX, TY]), can_move_here([X, Y], [TX, TY], Board).
+movement([X, Y], Board, [[X,Y], [RX, RY]]) :- can_move([X, Y], Board), right([X,Y], [RX, RY]), can_move_here([X, Y], [RX, RY], Board).
+movement([X, Y], Board, [[X,Y], [LX, LY]]) :- can_move([X, Y], Board),  left([X,Y], [LX, LY]), can_move_here([X, Y], [LX, LY], Board).
+movement([X, Y], Board, [[X,Y], [DX, DY]]) :- can_move([X, Y], Board),  down([X,Y], [DX, DY]), can_move_here([X, Y], [DX, DY], Board).
 
 get_allies([], _, []).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y, P, S]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
