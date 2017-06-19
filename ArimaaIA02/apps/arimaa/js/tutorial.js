@@ -13,16 +13,16 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 	var show_step_delay_human = 200; // milliseconds between steps for human
 	var show_step_delay_bot = 450; // milliseconds between steps for bot
 	var current_show_step_delay = show_step_delay_bot;
-	
+	var lastTime = null;
 	var gametree, viewer, gametree_utils;
 	//var arrow_handler;
 	var current_move_index = 0;
 	var bot_showing = false;
-	
+
 	var stepbuffer = [];
-	
+
 	var showing_slowly = false; // when moves are showed slowly, controls are locked
-	
+
 	function get_current_node() { return gametree.select_node(viewer.current_id()); }
 
 	function make_step_to_gametree(step) {
@@ -30,13 +30,13 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		// step = { 'from': selected, 'to': new_coordinate, 'piece': piece }
 		step.notated = TRANSLATOR.get_step_as_notated(step);
 		stepbuffer.push(step);
-	}	
+	}
 
 	function get_stepbuffer_as_notated() {
-		var notated = GENERIC.reduce("", stepbuffer, function(result, step) {			
+		var notated = GENERIC.reduce("", stepbuffer, function(result, step) {
 			return result + " " + TRANSLATOR.get_step_as_notated(step);
 		});
-		
+
 		return $.trim(notated);
 	}
 
@@ -48,7 +48,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			$('.pass').attr('disabled', 'disabled');
 		}
 	}
-	
+
 	function show_piece_at(from, to_elem) {
 		//var piece = viewer.board()[coord.row][coord.col];
 		//coordinate_for_elem($(this))
@@ -73,16 +73,16 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		var src = orig[0].src.split("/");
 		src = src[src.length - 1];
 		var ghost_id = '#' + turn_prefix(viewer.gamestate().turn) + viewer.board()[selected.row][selected.col].type + "_ghost";
-		
+
 		var ghost = $(ghost_id);
-		var cloned = 
+		var cloned =
 			ghost.clone(false)
 			.removeAttr('id')
 			.hide()
 			.addClass('cloned_for_dnd');
-		
-		//ghost.show(); 
-		
+
+		//ghost.show();
+
 		cloned.appendTo(orig.closest('.square'));
 		//cloned = ghost;
 
@@ -94,28 +94,28 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			.show();
 			*/
 
-		//orig.closest('.square').addClass('dragged_original');			
+		//orig.closest('.square').addClass('dragged_original');
 
 		function is_original_square(elem) {
 			var coord2 = coordinate_for_element(elem);
 			return selected.row === coord2.row && selected.col === coord2.col;
 		}
-		
+
 		orig.bind('mousemove.arimaa_tutorial', function(e) {
 			$('.square.hovered_selection').removeClass('hovered_selection');
 			cloned.hide();
 			return false;
 		});
-		
-		$('.square').bind('mousemove.arimaa_tutorial', function(e) {			
+
+		$('.square').bind('mousemove.arimaa_tutorial', function(e) {
 			$('.square.hovered_selection').removeClass('hovered_selection');
 			if($(this).find('.cloned_for_dnd').length > 0) {
 				$(this).find('.cloned_for_dnd').remove();
 			}
-			
+
 			cloned.remove().appendTo($(this));
-			
-			if(!$(this).hasClass('selection_option')) { 
+
+			if(!$(this).hasClass('selection_option')) {
 				cloned.hide();
 			} else {
 				cloned.show();
@@ -131,27 +131,27 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 				//.css('left', e.pageX-cloned.width()/2)
 				//.css('top', e.pageY-cloned.height()/2);
 				return false;
-		});			
-		
+		});
+
 	}
-	
+
 	function select_piece(elem) {
 		var selected = coordinate_for_element(elem);
 
 		clear_selections();
 
-		var paths = selection_handler.click_at(selected);			
+		var paths = selection_handler.click_at(selected);
 
 		if(!paths || paths.length === 0) {
 			clear_selections();
 			selection_handler.clear_selected();
 			return false;
 		}
-		
-		create_clone(selected);	
+
+		create_clone(selected);
 		// if piece has no path, clear
 	}
-	
+
 	function select_target(elem) {
 		var selected = coordinate_for_element(elem);
 
@@ -159,24 +159,24 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			selection_handler.clear_selected();
 			return;
 		}
-		
-		$('.dragged_original').removeClass('dragged_original');			
-		
+
+		$('.dragged_original').removeClass('dragged_original');
+
 		var path = selection_handler.select_at(selected);
 		clear_selections();
 
 		if(!path) {
 			select_piece(elem);
-			return false;	
+			return false;
 		}
 
 		selection_handler.clear_selected();
 
-		play_step_sound();		
+		play_step_sound();
 
 		var board_before = viewer.board();
 		var gamestate_before = viewer.gamestate();
-		
+
 		function commit_steps() {
 			var from = path[0];
 			for(var i = 1; i < path.length; ++i) {
@@ -185,7 +185,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 				from = to;
 				//get_square(step.row, step.col).addClass('trap');
 			};
-			
+
 			showing_slowly = false;
 		}
 
@@ -199,22 +199,22 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 				show_board();
 				return;
 			}
-			
+
 			var to = rest[0];
 			showing_slowly = true;
 
-			show_make_step_for_piece(from, to, 
-					function() {						
+			show_make_step_for_piece(from, to,
+					function() {
 						show_selected(to, rest.slice(1));
 					});
 		}
-		
+
 		current_show_step_delay = show_step_delay_human;
 		show_selected(from, path.slice(1));
-		
-		show_current_turn();			
-		
-		
+
+		show_current_turn();
+
+
 		// if piece === target, clear
 		// if target is not in path, clear
 	}
@@ -224,19 +224,19 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		selection_handler.clear_selected();
 		clear_selections();
 	}
-	
-	function bind_select_piece() {		
+
+	function bind_select_piece() {
 		$( document ).on('mousedown', '.square', function() {
 			if(showing_slowly || bot_showing) return false;
 
 			var elem = $(this);
 			var selected = coordinate_for_element(elem);
-			
+
 			if(selection_handler.currently_selected(selected)) {
 				original_state();
-				return false;				
+				return false;
 			}
-			
+
 			if(!selection_handler.has_selected()) {
 				select_piece(elem);
 			} else {
@@ -244,33 +244,33 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			}
 			return false;
 		})
-		
+
 		$( document ).on('mouseup', '.square', function(e) {
 			$(this).unbind('mousemove.arimaa_tutorial');
-			var elem = $(this);	
+			var elem = $(this);
 			var selected = coordinate_for_element(elem);
-			
+
 			if(selection_handler.has_selected() &&
 				!selection_handler.currently_selected(selected)) {
 				select_target(elem);
 			}
-			
+
 			return false;
 		});
-		
+
 	}
 
 	function is_human_side(side) { return side === human_side; }
-	
+
 	// this is for making a new move
 	function make_step_for_piece(selected, new_coordinate) {
 		if(selected === undefined) return;
 
 		var piece = viewer.board()[selected.row][selected.col];
-		var step = { 'from': selected, 'to': new_coordinate, 'piece': piece } 
+		var step = { 'from': selected, 'to': new_coordinate, 'piece': piece }
 		//FIXME: making move to gametree should be behind common interface with getting new board
 		result = ARIMAA.move_piece(viewer.gamestate(), viewer.board(), selected, new_coordinate);
-		
+
 		make_step_to_gametree(step);
 		// if turn changed, commit the steps into gametree as a move
 		if(result.gamestate.turn !== viewer.gamestate().turn) {
@@ -285,16 +285,16 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 				//bot_move();
 				//action_buffer.push(bot_move);
 				setTimeout(bot_move_call_prolog, 1, result.gamestate.turn); // indirect call gives time to hide arrows
-				//arrow_handler.show_off();				
+				//arrow_handler.show_off();
 			}
 		} else {
 			viewer.setBoard(result.board);
 			viewer.setGamestate(result.gamestate);
-			
+
 			if(is_human_side(result.gamestate.turn)) {
 				//show_board(); // show board only for human when making a step
 			}
-			
+
 			//show_board();
 			//arrow_handler.clear_arrows();
 		}
@@ -311,7 +311,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		 anyways this is a bit dirty way to animate
 		 though eventually the current dom based thing might change to use of absolute positions and maybe canvas
 		***/
-		
+
 		var pieceElem = $('.row').eq(selected.row).find('.square').eq(selected.col).find('img');
 		var toElem = $('.row').eq(new_coordinate.row).find('.square').eq(new_coordinate.col);
 
@@ -320,7 +320,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			after_animation();
 			return;
 		}
-		
+
 		var x_change = (new_coordinate.col - selected.col) * (toElem.outerWidth());
 		var y_change = (new_coordinate.row - selected.row) * (toElem.outerHeight());
 
@@ -331,13 +331,13 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 
 		// animation clones that are still being animated must be fast-forwarded
 		$('.clone_animation_piece').stop(false, true);
-		
+
 		var x = pieceElem.offset().left + x_change;
 		var y = pieceElem.offset().top + y_change;
 
 		var clone = pieceElem.clone(false).hide().removeClass('square');
 		clone.addClass('clone_animation_piece');
-		
+
 		clone
 			.css('position', 'absolute')
 			.css('left', pieceElem.position().left)
@@ -347,20 +347,20 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 
 		pieceElem.hide();
 		clone.show();
-			
+
 		function after_animation() {
-			// if this function is called with not showing_slowly, the moving slowly has been interrupted			
+			// if this function is called with not showing_slowly, the moving slowly has been interrupted
 			if(!clone || !showing_slowly) {
 				return;
 			}
 
 			clone.remove();
-			show_board();			
-			
+			show_board();
+
 			if(!!after_action) { after_action(); }
 		  //arrow_handler.clear_arrows();
 		}
-		
+
 		var real_delay = current_show_step_delay - 50;
 
 		$('.boardwrapper').append(clone);
@@ -371,19 +371,19 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		}, real_delay, after_animation);
 
 	}
-	
+
 	function show_step_delay(turn) {
 		return is_human_side(turn) ? show_step_delay_human : show_step_delay_bot;
 	}
-	
+
 	function moves_from(node) { return node.moves_from_node.length; }
 
 	function show_step(step) {
 		// if this function is called with not showing_slowly, the moving slowly has been interrupted
 		if(!showing_slowly) return;
-		
+
 		play_step_sound();
-		
+
 		if(step.type === 'setting') {
 			var result = ARIMAA.add_piece(step.piece, step.to, viewer.board(), viewer.gamestate());
 			viewer.setBoard(result.board);
@@ -396,7 +396,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		  show_board();
 		  //arrow_handler.clear_arrows();
 		} else if(step.type === 'removal') {
-			throw "removal step should not be handled here, the game logic should take care of it";			
+			throw "removal step should not be handled here, the game logic should take care of it";
 			// this can be skipped, since the effect is already done in previous step
 		} else {
 			show_make_step_for_piece(step.from, step.to);
@@ -409,11 +409,11 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			action();
 		}
 	}
-	
+
 	function show_steps_slowly(steps, nodeid, move_index) {
 		// if this function is called with not showing_slowly, the moving slowly has been interrupted
 		if(!showing_slowly) return;
-		
+
 		if(steps.length === 0) {
 			bot_showing = false;
 			showing_slowly = false;
@@ -426,13 +426,13 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		}
 
 		//if(steps[1] !== undefined) show_shadow_piece_at(steps[1].notated, steps[1].to.row, steps[1].to.col);
-		
+
 		show_step(steps[0]);
 		setTimeout(function() {
-				if(showing_slowly) show_steps_slowly(steps.slice(1), nodeid, move_index); 
-			}, current_show_step_delay);				
+				if(showing_slowly) show_steps_slowly(steps.slice(1), nodeid, move_index);
+			}, current_show_step_delay);
 	}
-	
+
 	function show_next_move_slowly() {
 		show_move_slowly(viewer.current_id(), current_move_index);
 	}
@@ -442,7 +442,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		showing_slowly = true; // only at this point if we want to show_board which contains show_shadow
 
 		var node = gametree.select_node(gametree.previous_nodeid(nodeid));
-		//node = 
+		//node =
 
 		if(node.moves_from_node.length > 0) {
 			function show_fun() {
@@ -454,41 +454,41 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			viewer.setGamestate(node.gamestate);
 			show_board();
 			undo_all_steps();
-			
-			// set correct starting position first and have a delay			
+
+			// set correct starting position first and have a delay
 			setTimeout(show_fun, show_step_delay);
 		} else {
 
-		}		 
+		}
 	}
 
 	function getKeyCode(event) { return event.keycode || event.which;	}
-	
+
 	function pass_if_legal() {
 		if(showing_slowly) return;
-		
+
 		if(ARIMAA.is_passing_legal(viewer.gamestate(), viewer.board())) {
 			stepbuffer.push({ 'type': 'pass' });
 			commit_move_to_gametree();
 			viewer.gametree_goto(current_nodehandle.id);
 			show_board();
-			// when passing, call prolog only if it was the human playing 
+			// when passing, call prolog only if it was the human playing
 			if (result.gamestate.turn.side != "silver")
 			{
 				bot_move_call_prolog(result.gamestate.turn);
 			}
 		}
 	}
-	
+
 	function bind_control_move() {
 		$('.pass').click(function() { pass_if_legal(); $(this).blur(); });
-		
+
 	 $(document).keydown(function(event) {
     	var code = getKeyCode(event);
-            
+
       if(code === 80 /* p */) { toggleDebugInfo(); }
       if(code === 79 /* o */) { showCurrentDebugInfo(); }
-      
+
       // prevent moving of window when arrow keys are pressed
       if(code >= 37 && code <= 40) { return false; }
     });
@@ -508,10 +508,10 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			$('body').css('margin-top', 0);
 		}
 	}
-      
+
 	function showCurrentDebugInfo() {
 		if(!ARIMAA_DEBUG_ON) return;
-		
+
 		$('.debug').html('');
 		debug({
 				"current_id: ": viewer.current_id(),
@@ -520,7 +520,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		});
 		$('.debug').addClass('shown');
 	}
-      
+
 	function create_tree_and_viewer() {
   	gametree = create_gametree();
   	viewer = create_viewer(gametree);
@@ -528,18 +528,18 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
   	//arrow_handler = create_arrow_handler(gametree, viewer);
   	selection_handler = create_selection_handler(gametree, viewer);
 	}
-	
+
 	function commit_board(board, gametree) {
 		var rows = [0, 1, 6, 7];
 		var temp_board = empty_board();
 		var temp_gamestate = ARIMAA.get_initial_gamestate();
 		var steps = [];
-		
+
 		for(var row = 0; row < rows.length; ++row) {
-			
+
 			for(var i = 0; i < ARIMAA.board_width; ++i) {
 				var piece = board[rows[row]][i];
-				
+
 				var step = {
 					'type': 'setting',
 					'piece': piece,
@@ -549,38 +549,38 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 					}
 				}
 				steps.push(step);
-				//make_step_to_gametree(step);					
+				//make_step_to_gametree(step);
 			}
-						
+
 			if(row === 1 || row === 3) {
 				var result = gametree.make_move({'steps': steps}, current_nodehandle);
 				current_nodehandle = result.nodehandle;
 				viewer.gametree_goto(result.nodehandle.id);
 				steps = [];
 			}
-		}		
+		}
 	}
-	
+
 	function commit_move_to_gametree() {
-		var move_name = 
+		var move_name =
 		// move number +
-			"[*] " +			
+			"[*] " +
 				get_stepbuffer_as_notated();
-				
+
 		var move = {
-			'id': move_name, 
+			'id': move_name,
 			'steps': stepbuffer
 		}
-		
+
 		stepbuffer = [];
-		
+
 		var result = gametree.make_move(move, current_nodehandle);
 		var nodehandle = result.nodehandle;
 		var move_index = result.move_index;
-		
+
 		current_nodehandle = nodehandle;
-	}	
-	
+	}
+
 	function init_game() {
   	create_tree_and_viewer();
   	current_nodehandle = gametree.get_initial_nodehandle();
@@ -591,22 +591,22 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		show_board();
 		show_current_turn();
 	}
-	
+
 	function show_current_turn() {
 		show_turn(viewer.gamestate());
-	}	
-             
+	}
+
         function is_empty(obj)
         {
             return (Object.getOwnPropertyNames(obj).length === 0);
         }
-        
+
         function board_to_prolog(board)
         {
             var prolog = "[";
-            for (var row in board) 
+            for (var row in board)
             {
-                for (var col in board[row]) 
+                for (var col in board[row])
                 {
                     var piece = board[row][col];
                     if (!is_empty(piece))
@@ -639,7 +639,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
             prolog += "]";
             return prolog;
         }
-        
+
         // Form of : [[[col,row],[col,row]],[[col,row],[col,row]],[[col,row],[col,row]],[[col,row],[col,row]]]
         function convert_prolog_move_to_js(prolog_steps, board)
         {
@@ -663,28 +663,28 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
             move.steps = steps;
             return move;
         }
-        
+
         function print_debug(trace)
         {
-            output_console = document.getElementById('stdout');    
+            output_console = document.getElementById('stdout');
             stdout_buffer = document.createElement('div');
             stdout_buffer.innerHTML = trace;
-            output_console.appendChild(stdout_buffer);   
+            output_console.appendChild(stdout_buffer);
         }
-        
+
 	/*function bot_move() {
 		bot_showing = true;
 		show_current_turn();
-		
+
 		if(ARIMAA.is_gameover(viewer.board(), viewer.gamestate())) return;
 
                 gamestate_to_prolog(viewer.gamestate());
                 board_to_prolog(viewer.board());
                 var move = bot.get_move(viewer.board(), viewer.gamestate());
-                
+
                 execute("get_moves(X," + gamestate_to_prolog(viewer.gamestate()) + "," + board_to_prolog(viewer.board()) + ").")
                 // var move = convert_prolog_move_to_js("[[[0,1],[0,2]],[[1,1],[1,2]],[[2,1],[2,2]],[[3,1],[3,2]]]", viewer.board());
-                
+
 		GENERIC.for_each(move.steps, function(step) {
 			make_step_for_piece(step.from, step.to);
 		});
@@ -692,32 +692,35 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		current_show_step_delay = show_step_delay_bot;
 		show_move_slowly(current_nodehandle.id, 0);
 	}*/
-	
+
         function bot_move_call_prolog(turn)
         {
+						lastTime = new Date().getTime();
             bot_showing = true;
             show_current_turn();
 
             if(ARIMAA.is_gameover(viewer.board(), viewer.gamestate())) return;
-            
+
             gamestate_to_prolog(viewer.gamestate());
             board_to_prolog(viewer.board());
 			var query = "get_moves(Moves," + gamestate_to_prolog(viewer.gamestate()) + "," + board_to_prolog(viewer.board()) + ").";
             print_debug("<br />YOUR BOT << " + query);
             execute(query)
         }
-        
+
         function bot_move_get_answer_from_prolog(prolog_answer)
         {
+					newTime = new Date().getTime();
+					print_debug("TOOK : " + ((newTime - lastTime)/1000) + " s");
 			print_debug("YOUR BOT >> " + JSON.stringify(prolog_answer));
 			var move_answer = JSON.stringify(prolog_answer.Moves);
-			
+
             var move = convert_prolog_move_to_js(move_answer, viewer.board());
-            
+
             GENERIC.for_each(move.steps, function(step) {
                 make_step_for_piece(step.from, step.to);
             });
-			
+
 			if (move.steps.length < 4)
 			{
 				pass_if_legal();
@@ -726,7 +729,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
             current_show_step_delay = show_step_delay_bot;
             show_move_slowly(current_nodehandle.id, 0);
         }
-        
+
 	function build_move_tree(moves) {
   	var nodehandle = gametree.get_initial_nodehandle();
 
@@ -747,35 +750,35 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 	function show_captured(gamestate) {
 		if(!gamestate.captured) return;
 		var result = "";
-		
+
 		var sorted_captured = [].concat(gamestate.captured);
 		function compare_strength(a, b) { return a.strength > b.strength ? -1 : 1; }
 		sorted_captured.sort(function(a, b) { return a.side === b.side ? compare_strength(a, b) : a.side === ARIMAA.silver ? - 1: 1; });
-		
+
 		GENERIC.for_each(sorted_captured, function(piece) {
 			var name = "pics/" + piece.side.side.slice(0, 1) + piece.type + ".png";
-			var capture = "<img class='captured_piece' src='" + name + "' />"; 
+			var capture = "<img class='captured_piece' src='" + name + "' />";
 			result += capture;
 		});
 
 		$('.captured_pieces').html('').append(result);
 	}
-	
+
 	function show_steps_left(gamestate) {
 		$('.steps_left').html(gamestate.steps);
 	}
-	
+
 	function show_board() {
 		show_captured(viewer.gamestate());
 		show_dom_board(viewer.board(), viewer.gamestate());
 		show_pass_if_legal();
 		show_steps_left(viewer.gamestate());
-		
+
 		if(ARIMAA.is_gameover(viewer.board(), viewer.gamestate()) || ARIMAA.is_gold_rabbit_at_goal(viewer.board())) {
 			$('.gameover_info').show();
 
 			if(ARIMAA.is_gold_rabbit_at_goal(viewer.board())) {
-				$('.game_win').show();			
+				$('.game_win').show();
 			} else {
 				$('.game_lost').show();
 			}
@@ -784,11 +787,11 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			$('.steps_left').html('0');
 		}
 	}
-	
+
 	function undo_all_steps() {
 		stepbuffer = [];
 	}
-	
+
 	function undo_steps() {
 		if(showing_slowly || !is_human_side(viewer.gamestate().turn)) return;
 		original_state();
@@ -796,19 +799,19 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		viewer.gametree_goto(viewer.current_id());
 		show_board();
 	}
-	
+
 	function bind_close_rules() {
-		$('.rules_close').click(function() { 
+		$('.rules_close').click(function() {
 			$('body').addClass('rules_closed');
 			$('#show_rules').show();
 		});
-		
+
 		$('#show_rules').click(function() {
 			$(this).hide();
 			$('body').removeClass('rules_closed');
 		});
 	}
-	
+
 	function bind_toggleable() {
 		$('.toggleable').click(function() {
 			//var shown = $('.toggleable:visible');
@@ -816,21 +819,21 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 			//$('.toggleable')
 			$(this).toggleClass("rule_toggled");
 		});
-		
+
 		$('.rules_homerow').hover(function() { $('.homerow.silver').addClass('highlight'); },
 															function() { $('.homerow.silver').removeClass('highlight'); }
 		);
 	}
-	
+
 	function bind_game_lost() {
 		$('.game_lost').click(function() {
 			window.location.reload(true);
 		});
-	}	
-	
+	}
+
 	$(function() {
 		create_tree_and_viewer();
-				
+
 		bind_control_move();
 		bind_select_piece();
 		bind_close_rules();
@@ -843,7 +846,7 @@ var ARIMAA_MAIN = ARIMAA_MAIN || function() {
 		init_game();
 		show_board();
 	});
-	
+
         return {
 		bot_move_get_answer_from_prolog: bot_move_get_answer_from_prolog
 	}

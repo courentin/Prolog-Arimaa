@@ -257,6 +257,8 @@ best_board(B1, N1, _, B1, N1, Gamestate).
 note_board([Board, _], Gamestate, Res) :- get_allies(Board, Board, Gamestate, Allies), note_pieces_recursively(Board, Gamestate, Allies, Res).
 
 % Note les pièces une à une et fait la somme de leurs notes
+  % param1 : le Board
+  % param
 note_pieces_recursively(_, _, [], 0).
 note_pieces_recursively(Board, Gamestate, [[X, Y, P, S] | Q], Res) :-
 	note_piece(Board, Gamestate, [X, Y, P, S], Res1),
@@ -319,11 +321,16 @@ find_best_board_recursively(Gamestate, [Solution|Q], BestSolution, BestNote) :-
   best_board(NewSolution, NewNote, Solution, BestSolution, BestNote, Gamestate).
 
 % Trouve le meilleur plateau en fonction des notes attribué à chaque mouvements
-  % param1 : le Gamestate
-  % param2 : le Board
-  % param3 : le meilleur board trouvé
-  % param4 : les mouvements
-  % param5 : le note resultat du meilleur board
+  % param1 : le nombre de mouvements à évaluer,
+    % 1 -> Evalue le meilleur plateau pour chaque mouvement
+    % 2 -> Evalue le meilleur plateau 2 mouvements par 2
+    % 3 -> Evalue le meilleur plateau pour 3 mouvements puis 1
+    % 4 -> Evalue le meilleur plateau pour les 4 mouvemnts => stack overflow
+  % param2 : le Gamestate
+  % param3 : le Board
+  % param4 : le meilleur board trouvé
+  % param5 : les mouvements
+  % param6 : le note resultat du meilleur board
 find_best_board(1, Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
   f_find_best_board(1, Gamestate, Board, Board2, [Mvt1], _),
   f_find_best_board(1, Gamestate, Board2, Board3, [Mvt2], _),
@@ -343,7 +350,7 @@ find_best_board(4, Gamestate, Board, BestBoard, Mvts, Res) :-
 
 
 f_find_best_board(NB, Gamestate, Board, NewBoard, Mvts, Res) :-
-  findall(Solution, get_state(NB, Board, [silver|_], Solution), Solutions),
+  setof(Solution, get_state(NB, Board, [silver|_], Solution), Solutions),
   find_best_board_recursively(Gamestate, Solutions, [NewBoard, Mvts], Res).
 
 
