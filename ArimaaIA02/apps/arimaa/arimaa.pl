@@ -180,10 +180,20 @@ get_state(Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
   % param2 : Gamestate
   % param3 : le Board resultat
   % param4 : les mouvements necessaire pour arriver au board resultat
-get_state_bis(Board, [Side|_], [NewBoard, [Mvt1]]) :-
+get_state_1(Board, [Side|_], [NewBoard, [Mvt1]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
   movement([X1, Y1], Board, [Side|_], Mvt1),
   apply_movement(Board, Mvt1, NewBoard).
+
+get_state_2(Board, [Side|_], [NewBoard, [Mvt1, Mvt2]]) :-
+  get_piece_side(Side, Board, [X1, Y1, _, _]),
+  movement([X1, Y1], Board, [Side|_], Mvt1),
+  apply_movement(Board, Mvt1, Board1),
+
+  get_piece_side(Side, Board1, [X2, Y2, _, _]),
+  movement([X2, Y2], Board1, [Side|_], Mvt2),
+  apply_movement(Board1, Mvt2, NewBoard).
+
 
 remove_suicide([[X, Y, Piece, Color]|Q], NewBoard) :-
   commit_suicide([X, Y], [Color|_], [[X, Y, Piece, Color]|Q]), !,
@@ -298,15 +308,19 @@ find_best_board_recursively(Gamestate, [Solution|Q], BestSolution, BestNote) :-
   % param4 : les mouvements
   % param5 : le note resultat du meilleur board
 find_best_board(Gamestate, Board, NewBoard, Mvts, Res) :-
-  findall(Solution, get_state_bis(Board, [silver|_], Solution), Solutions),
+  findall(Solution, get_state_2(Board, [silver|_], Solution), Solutions),
   find_best_board_recursively(Gamestate, Solutions, [NewBoard, Mvts], Res).
 
 
-find_best_board_bis(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+find_best_board_1(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
   find_best_board(Gamestate, Board, Board2, [Mvt1], _),
   find_best_board(Gamestate, Board2, Board3, [Mvt2], _),
   find_best_board(Gamestate, Board3, Board4, [Mvt3], _),
   find_best_board(Gamestate, Board4, BestBoard, [Mvt4], Res).
+
+find_best_board_2(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+  find_best_board(Gamestate, Board, Board2, [Mvt1, Mvt2], _),
+  find_best_board(Gamestate, Board2, BestBoard, [Mvt3, Mvt4], Res).
 
 
 % Trouve le meilleur plateau en parcourant la liste des mouvements possibles
@@ -331,4 +345,4 @@ generate_piece_by_piece_movements([[X, Y, P, S] | Q], Board, Ret) :-
 	append(Res1, Res2, Ret).
 
 get_moves(Mvts, Gamestate, Board) :-
-  find_best_board_bis(Gamestate, Board, _, Mvts, _).
+  find_best_board_2(Gamestate, Board, _, Mvts, _).
