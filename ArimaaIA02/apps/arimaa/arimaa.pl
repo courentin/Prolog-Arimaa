@@ -158,7 +158,7 @@ get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamest
   % param2 : Gamestate
   % param3 : le Board resultat
   % param4 : les mouvements necessaire pour arriver au board resultat
-get_state(Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
+get_state(4, Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
   movement([X1, Y1], Board, [Side|_], Mvt1),
   apply_movement(Board, Mvt1, Board1),
@@ -180,28 +180,45 @@ get_state(Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
   % param2 : Gamestate
   % param3 : le Board resultat
   % param4 : les mouvements necessaire pour arriver au board resultat
-get_state_1(Board, [Side|_], [NewBoard, [Mvt1]]) :-
+get_state(1, Board, [Side|_], [NewBoard, [Mvt1]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
   movement([X1, Y1], Board, [Side|_], Mvt1),
   apply_movement(Board, Mvt1, NewBoard).
 
-get_state_2(Board, [Side|_], [NewBoard, [Mvt1, Mvt2]]) :-
+get_state(2, Board, [Side|_], [NewBoard, [Mvt1, Mvt2]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
   movement([X1, Y1], Board, [Side|_], Mvt1),
   apply_movement(Board, Mvt1, Board1),
+  remove_suicide(Board1, Board11),
 
-  get_piece_side(Side, Board1, [X2, Y2, _, _]),
-  movement([X2, Y2], Board1, [Side|_], Mvt2),
-  apply_movement(Board1, Mvt2, NewBoard).
+  get_piece_side(Side, Board11, [X2, Y2, _, _]),
+  movement([X2, Y2], Board11, [Side|_], Mvt2),
+  apply_movement(Board11, Mvt2, Board2),
+  remove_suicide(Board2, NewBoard).
 
+get_state(3, Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3]]) :-
+  get_piece_side(Side, Board, [X1, Y1, _, _]),
+  movement([X1, Y1], Board, [Side|_], Mvt1),
+  apply_movement(Board, Mvt1, Board1),
+  remove_suicide(Board1, Board11),
 
-remove_suicide([[X, Y, Piece, Color]|Q], NewBoard) :-
-  commit_suicide([X, Y], [Color|_], [[X, Y, Piece, Color]|Q]), !,
-  delete([[X, Y, Piece, Color]|Q], [X, Y, Piece, Color], NewBoard).
+  get_piece_side(Side, Board11, [X2, Y2, _, _]),
+  movement([X2, Y2], Board11, [Side|_], Mvt2),
+  apply_movement(Board11, Mvt2, Board2),
+  remove_suicide(Board2, Board22),
 
-remove_suicide([[X, Y, Piece, Color]|Q], NewBoard) :-
-  commit_suicide([X, Y], [Color|_], [[X, Y, Piece, Color]|Q]),
-  delete([[X, Y, Piece, Color]|Q], [X, Y, Piece, Color], NewBoard).
+  get_piece_side(Side, Board22, [X3, Y3, _, _]),
+  movement([X3, Y3], Board22, [Side|_], Mvt3),
+  apply_movement(Board22, Mvt3, Board3),
+  remove_suicide(Board3, NewBoard).
+
+remove_suicide(Board, NewBoard) :- remove_suicide(Board, Board, NewBoard).
+remove_suicide(B, [], B).
+remove_suicide(Board, [[X, Y, Piece, Color]|Q], NewBoard) :-
+  commit_suicide([X, Y], [Color|_], Board),
+  delete(Board, [X, Y, Piece, Color], NewBoard).
+
+remove_suicide(Board, [[X, Y, Piece, Color]|Q], NewBoard) :- remove_suicide(Board, Q, NewBoard).
 
 % Applique un mouvement à une Board
   % param1 : board de départ
@@ -307,20 +324,27 @@ find_best_board_recursively(Gamestate, [Solution|Q], BestSolution, BestNote) :-
   % param3 : le meilleur board trouvé
   % param4 : les mouvements
   % param5 : le note resultat du meilleur board
-find_best_board(Gamestate, Board, NewBoard, Mvts, Res) :-
-  findall(Solution, get_state_2(Board, [silver|_], Solution), Solutions),
+find_best_board(1, Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+  f_find_best_board(1, Gamestate, Board, Board2, [Mvt1], _),
+  f_find_best_board(1, Gamestate, Board2, Board3, [Mvt2], _),
+  f_find_best_board(1, Gamestate, Board3, Board4, [Mvt3], _),
+  f_find_best_board(1, Gamestate, Board4, BestBoard, [Mvt4], Res).
+
+find_best_board(2, Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+  f_find_best_board(2, Gamestate, Board, Board2, [Mvt1, Mvt2], _),
+  f_find_best_board(2, Gamestate, Board2, BestBoard, [Mvt3, Mvt4], Res).
+
+find_best_board(3, Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+  f_find_best_board(3, Gamestate, Board, Board2, [Mvt1, Mvt2, Mvt3], _),
+  f_find_best_board(1, Gamestate, Board2, BestBoard, [Mvt4], Res).
+
+find_best_board(4, Gamestate, Board, BestBoard, Mvts, Res) :-
+  f_find_best_board(4, Gamestate, Board, BestBoard, Mvts, Res).
+
+
+f_find_best_board(NB, Gamestate, Board, NewBoard, Mvts, Res) :-
+  findall(Solution, get_state(NB, Board, [silver|_], Solution), Solutions),
   find_best_board_recursively(Gamestate, Solutions, [NewBoard, Mvts], Res).
-
-
-find_best_board_1(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
-  find_best_board(Gamestate, Board, Board2, [Mvt1], _),
-  find_best_board(Gamestate, Board2, Board3, [Mvt2], _),
-  find_best_board(Gamestate, Board3, Board4, [Mvt3], _),
-  find_best_board(Gamestate, Board4, BestBoard, [Mvt4], Res).
-
-find_best_board_2(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
-  find_best_board(Gamestate, Board, Board2, [Mvt1, Mvt2], _),
-  find_best_board(Gamestate, Board2, BestBoard, [Mvt3, Mvt4], Res).
 
 
 % Trouve le meilleur plateau en parcourant la liste des mouvements possibles
@@ -345,4 +369,4 @@ generate_piece_by_piece_movements([[X, Y, P, S] | Q], Board, Ret) :-
 	append(Res1, Res2, Ret).
 
 get_moves(Mvts, Gamestate, Board) :-
-  find_best_board_2(Gamestate, Board, _, Mvts, _).
+  find_best_board(3, Gamestate, Board, _, Mvts, _).
