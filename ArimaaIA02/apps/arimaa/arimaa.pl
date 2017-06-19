@@ -15,7 +15,7 @@
 % get_moves(Moves, [silver, []], [[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[1,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[6,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
 
 % default call
-get_moves([[[1,0],[4,0]],[[0,0],[1,0]],[[0,1],[0,0]],[[0,0],[0,1]]], Gamestate, Board).
+%get_moves([[[1,0],[4,0]],[[0,0],[1,0]],[[0,1],[0,0]],[[0,0],[0,1]]], Gamestate, Board).
 
 board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[1,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[2,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
 
@@ -70,6 +70,10 @@ is_trap([5,2]).
 is_trap([2,5]).
 is_trap([5,5]).
 
+commit_suicide(Pos, Gamestate, Board) :-
+  is_trap(Pos),
+  \+has_adjacent_ally(Pos, Gamestate, Board).
+
 % Attention, il faudra peut être rajouter un is_ally dans ce predicat, si on n'est pas sur de tester uniquement sur des alliés
 % can move if it has an ally around
 can_move(Pos, Board, [Side|_], [[_,Side]|_]).
@@ -119,32 +123,40 @@ get_allies(_, [], _, []).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, [[X, Y, P, S]|Res]) :- is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamestate, Board), get_allies(Board, QB, Gamestate, Res).
 
+get_state_bis(Board, [Side|_], [NewBoard, [Mvt1]]) :-
+  get_piece_side(Side, Board, [X1, Y1, _, _]),
+  movement([X1, Y1], Board, [Side|_], Mvt1),
+  apply_movement(Board, Mvt1, NewBoard).
+
 % Créer un nouvel etat du jeu possible à partir de celui de base
   % param1 : Board
   % param2 : Gamestate
   % param3 : le Board resultat
   % param4 : les mouvements necessaire pour arriver au board resultat
-  get_state(Board, [Side|_], NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]) :-
-    get_piece_side(Side, Board, [X1, Y1, _, _]),
-    movement([X1, Y1], Board, [Side|_], Mvt1),
-    apply_movement(Board, Mvt1, Board1),
+get_state(Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
+  get_piece_side(Side, Board, [X1, Y1, _, _]),
+  movement([X1, Y1], Board, [Side|_], Mvt1),
+  apply_movement(Board, Mvt1, Board1),
 
-    get_piece_side(Side, Board1, [X2, Y2, _, _]),
-    movement([X2, Y2], Board1, [Side|_], Mvt2),
-    apply_movement(Board1, Mvt2, Board2),
+  get_piece_side(Side, Board1, [X2, Y2, _, _]),
+  movement([X2, Y2], Board1, [Side|_], Mvt2),
+  apply_movement(Board1, Mvt2, Board2),
 
-    get_piece_side(Side, Board2, [X3, Y3, _, _]),
-    movement([X3, Y3], Board2, [Side|_], Mvt3),
-    apply_movement(Board2, Mvt3, Board3),
+  get_piece_side(Side, Board2, [X3, Y3, _, _]),
+  movement([X3, Y3], Board2, [Side|_], Mvt3),
+  apply_movement(Board2, Mvt3, Board3),
 
-    get_piece_side(Side, Board3, [X4, Y4, _, _]),
-    movement([X4, Y4], Board3, [Side|_], Mvt4),
-    apply_movement(Board3, Mvt4, NewBoard).
+  get_piece_side(Side, Board3, [X4, Y4, _, _]),
+  movement([X4, Y4], Board3, [Side|_], Mvt4),
+  apply_movement(Board3, Mvt4, NewBoard).
 
-  all_states(Board, Gamestate, [NewBoard|Q]) :-
-    get_state(Board, Gamestate, NewBoard, Mvt),
-    print(Mvt),nl(),
-    all_states(Board, Gamestate, Q).
+remove_suicide([[X, Y, Piece, Color]|Q], NewBoard) :-
+  commit_suicide([X, Y], [Color|_], [[X, Y, Piece, Color]|Q]), !,
+  delete([[X, Y, Piece, Color]|Q], [X, Y, Piece, Color], NewBoard).
+
+remove_suicide([[X, Y, Piece, Color]|Q], NewBoard) :-
+  commit_suicide([X, Y], [Color|_], [[X, Y, Piece, Color]|Q]),
+  delete([[X, Y, Piece, Color]|Q], [X, Y, Piece, Color], NewBoard).
 
 % Applique un mouvement à une Board
   % param1 : board de départ
@@ -153,7 +165,6 @@ get_allies(Board, [[X, Y, P, S]|QB], Gamestate, Res) :- \+is_ally([X, Y], Gamest
 apply_movement([], _, []).
 apply_movement([[X, Y, Piece, Color]|Q], [[X, Y], [NX, NY]], [[NX, NY, Piece, Color]|NewQ]) :-
   apply_movement(Q, [[X, Y], [NX, NY]], NewQ), !.
-% apply_movement(Board, Mouvement, Nouvelle Board)
 apply_movement([T|Q], Mvt, [T|NewQ]) :-
   apply_movement(Q, Mvt, NewQ).
 
@@ -171,20 +182,27 @@ get_piece_side(Side, [_|Q], Piece) :- get_piece_side(Side, Q, Piece).
 % Param 3 : Plateau 2
 % Param 4 : meilleure des deux plateaux
 % Param 5 : Score du meilleur plateau
-best_board(_, N1, B2, B2, N2) :- note_board(B2, N2), N2 > N1, !.
-best_board(B1, N1, _, B1, N1).
+best_board(_, N1, B2, B2, N2, Gamestate) :- note_board(B2, Gamestate, N2), N2 > N1, !.
+best_board(B1, N1, _, B1, N1, Gamestate).
 
 % Renvoie une note pour le plateau
-note_board(Board, Gamestate, Res) :- get_allies(Board, Board, Gamestate, Allies), note_pieces_recursively(Board, Gamestate, Allies, Res).
+note_board([Board, _], Gamestate, Res) :- get_allies(Board, Board, Gamestate, Allies), note_pieces_recursively(Board, Gamestate, Allies, Res).
 
 % Note les pièces une à une et fait la somme de leurs notes
 note_pieces_recursively(_, _, [], 0).
 note_pieces_recursively(Board, Gamestate, [[X, Y, P, S] | Q], Res) :-
 	note_piece(Board, Gamestate, [X, Y, P, S], Res1),
 	note_pieces_recursively(Board, Gamestate, Q, Res2),
-	Res is Res1 + Res2,
-	print(Res),nl.
+	Res is Res1 + Res2.
 
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [[_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, [_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, [_,Side]|_], Board).
+has_adjacent_ally(Pos, [Side|_], Board) :-
+  get_adjacentes(Pos, [_, _, _, [_,Side]], Board).
 
 %Note une pièce du plateau
 % param 1 : Board
@@ -195,7 +213,7 @@ note_pieces_recursively(Board, Gamestate, [[X, Y, P, S] | Q], Res) :-
 % Un lapin dans le camp adverse = note énorme, le coup doit être joué
 note_piece(_, _, [7, _, rabbit, _], 10000) :- !.
 % Une pièce va sur un piège = on retire des points en fonction de l'importance de la pièce (lapin = 200, elephant = 700)
-note_piece(Board, _, [X, Y, P, S], Res) :- is_trap([X, Y]), \+has_adjacent_ally([X, Y], [S], Board), associate_animal_num(P, N), Res is N * -100, !.
+note_piece(Board, _, [X, Y, P, S], Res) :- is_trap([X, Y]), \+has_adjacent_ally([X, Y], [S], Board), associate_animal_num(P, N), Res is N * -300, !.
 % PLus un lapin peut se rapprocher du fond au prochain coup, plus il vaut de points
 note_piece(Board, _, [X, Y, rabbit, _], Res) :- X1 is X + 1, can_move_here([X, Y], [X1, Y], Board), Res is X * 100, !.
 % Bloquer notre pièce retire des points
@@ -210,7 +228,23 @@ note_piece(_, _, _, 0).
 %    Génération des mouvements par Anthony (non fonctionnel, probablement travail en double avec Corentin)
 % --------------------------------------------------------------------------------------------------------
 
-find_best_board() :- generate_movements(Board, Gamestate, Movements), find_best_board_recursively(Movements, Board, [], -10000).
+find_best_board_recursively(Gamestate, [], _, -10000).
+
+find_best_board_recursively(Gamestate, [Solution|Q], BestSolution, BestNote) :-
+  note_board(Solution, Gamestate, Note), !,
+  find_best_board_recursively(Gamestate, Q, NewSolution, NewNote),
+  best_board(NewSolution, NewNote, Solution, BestSolution, BestNote, Gamestate).
+
+find_best_board(Gamestate, Board, NewBoard, Mvts, Res) :-
+  findall(Solution, get_state_bis(Board, [silver|_], Solution), Solutions),
+  find_best_board_recursively(Gamestate, Solutions, [NewBoard, Mvts], Res).
+
+
+find_best_board_bis(Gamestate, Board, BestBoard, [Mvt1, Mvt2, Mvt3, Mvt4], Res) :-
+  find_best_board(Gamestate, Board, Board2, [Mvt1], _),
+  find_best_board(Gamestate, Board2, Board3, [Mvt2], _),
+  find_best_board(Gamestate, Board3, Board4, [Mvt3], _),
+  find_best_board(Gamestate, Board4, BestBoard, [Mvt4], Res).
 
 
 % Trouve le meilleur plateau en parcourant la liste des mouvements possibles
@@ -219,9 +253,6 @@ find_best_board() :- generate_movements(Board, Gamestate, Movements), find_best_
 % Param 3 : Meilleur plateau
 % Param 4 : Score du meilleur plateau
 %find_best_board_recursively() :-
-
-
-
 generate_movements(Board, Gamestate, Res) :-
 	get_allies(Board, Board, Gamestate, Allies),
 	generate_piece_by_piece_movements(Allies, Board, Gamestate).
@@ -236,3 +267,6 @@ generate_piece_by_piece_movements([[X, Y, P, S] | Q], Board, Ret) :-
 	movements([X, Y], Board, Res1),
 	generate_piece_by_piece_movements(Q, Board, Res2),
 	append(Res1, Res2, Ret).
+
+get_moves(Mvts, Gamestate, Board) :-
+  find_best_board_bis(Gamestate, Board, _, Mvts, _).
