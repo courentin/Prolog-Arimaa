@@ -10,7 +10,7 @@
 % Exemple of variable
 % gamestate: [side, [captured pieces] ] (e.g. [silver, [ [0,1,rabbit,silver],[0,2,horse,silver] ])
 
-board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[1,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[2,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
+board([[0,0,rabbit,silver],[0,1,rabbit,silver],[0,2,horse,silver],[0,3,rabbit,silver],[0,4,elephant,silver],[0,5,rabbit,silver],[0,6,rabbit,silver],[0,7,rabbit,silver],[1,0,camel,silver],[1,1,cat,silver],[2,2,rabbit,silver],[1,3,dog,silver],[1,4,rabbit,silver],[1,5,horse,silver],[1,6,dog,silver],[1,7,cat,silver],[2,7,rabbit,gold],[6,0,cat,gold],[6,1,horse,gold],[6,2,camel,gold],[6,3,elephant,gold],[6,4,rabbit,gold],[6,5,dog,gold],[2,6,rabbit,gold],[7,0,rabbit,gold],[7,1,rabbit,gold],[7,2,rabbit,gold],[7,3,cat,gold],[7,4,dog,gold],[7,5,rabbit,gold],[7,6,horse,gold],[7,7,rabbit,gold]]).
 
 % Retourne la piece à la position [X, Y], tableau vide si rien
   % param1 : position à chercher de la forme [X, Y]
@@ -183,7 +183,8 @@ get_state(4, Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3, Mvt4]]) :-
 get_state(1, Board, [Side|_], [NewBoard, [Mvt1]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
   movement([X1, Y1], Board, [Side|_], Mvt1),
-  apply_movement(Board, Mvt1, NewBoard).
+  apply_movement(Board, Mvt1, Board1),
+  remove_suicide(Board1, NewBoard).
 
 get_state(2, Board, [Side|_], [NewBoard, [Mvt1, Mvt2]]) :-
   get_piece_side(Side, Board, [X1, Y1, _, _]),
@@ -215,7 +216,7 @@ get_state(3, Board, [Side|_], [NewBoard, [Mvt1, Mvt2, Mvt3]]) :-
 remove_suicide(Board, NewBoard) :- remove_suicide(Board, Board, NewBoard).
 remove_suicide(B, [], B).
 remove_suicide(Board, [[X, Y, Piece, Color]|Q], NewBoard) :-
-  commit_suicide([X, Y], [Color|_], Board),
+  commit_suicide([X, Y], [Color|_], Board), !,
   delete(Board, [X, Y, Piece, Color], NewBoard).
 
 remove_suicide(Board, [[X, Y, Piece, Color]|Q], NewBoard) :- remove_suicide(Board, Q, NewBoard).
@@ -376,4 +377,4 @@ generate_piece_by_piece_movements([[X, Y, P, S] | Q], Board, Ret) :-
 	append(Res1, Res2, Ret).
 
 get_moves(Mvts, Gamestate, Board) :-
-  find_best_board(3, Gamestate, Board, _, Mvts, _).
+  find_best_board(2, Gamestate, Board, _, Mvts, _).
